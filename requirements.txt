@@ -1,1 +1,1 @@
-dotdata-docs-mcp==0.1.3
+dotdata-v2-docs-mcp==0.3.0
