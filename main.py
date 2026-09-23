@@ -14,18 +14,20 @@ _allowed_origins = (
     else [o.strip() for o in os.environ.get("MCP_ALLOWED_ORIGINS", "").split(",") if o.strip()]
 )
 _port = os.environ.get("PORT", "8000")
+_on_databricks = bool(_databricks_host)  # DATABRICKS_HOST is set by Databricks Apps
 
-# Same settings the FF 1.5 server (dotdata-docs-mcp) applied internally when it detected Databricks.
-# dotdata-v2-docs-mcp exposes only the get_mcp() factory, so they are applied here, at app-build time.
+# Same settings the FF 1.5 server used on Databricks.
 _transport_security = TransportSecuritySettings(
+    # Genie calls from the workspace URL; without this the mcp library answers 403 "Invalid Origin header".
     allowed_origins=_allowed_origins,
+    # Host header as seen behind the Databricks Apps proxy.
     allowed_hosts=[f"localhost:{_port}", f"127.0.0.1:{_port}", "localhost", "127.0.0.1"],
 )
 
 mcp = get_mcp()
 app = mcp.streamable_http_app(
-    json_response=True,
-    stateless_http=bool(_databricks_host),
+    json_response=True,  # plain JSON replies instead of SSE streams
+    stateless_http=_on_databricks,  # Genie does not keep Mcp-Session-Id; without this it gets 400 "Missing session ID"
     transport_security=_transport_security,
 )
 
